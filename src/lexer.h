@@ -103,20 +103,37 @@ void next() {
 			token.type = PUNCTUATION;
 			printf("Token(PUNCTUATION, %s)", token.value);
 		}
+		// Check for string
 		else if(*c == '"' || *c == '\'') {
-			len = 0;
+			int len = 0;
 			while(*c != '"' || *c != '\'' && *c != '\0') {
-				token.value[len++] = *c++;
+				if(*c == '\\' && *(c+1) == '"') {
+					token.value[len++] = '"';
+					c += 2;
+				} else if (*c == '\\' && *(c+1) == '\\') {
+					c += 2;
+				} else {
+					token.value[len++] = *c++;
+				}
 			}
 			token.value[len] = '\0';
 			token.type = STRING;
 			printf("Token(STRING, %s)", token.value);
+			
+			if(*c == '"' || *c == '\'') {
+				token.value[len] = '\0';
+				token.type = STRING;
+				printf("Token(STRING, %s)", token.value);
+			} else {
+				printf("Unterminated string literal");
+				break;
+			}
 		}
 		// Handle unknown values
 		else {
 			token.value[0] = *c++;
 			token.value[1] = '\0';
-			token.type = UNKNOWN;
+			token.type = OTHER;
 			printf("Token(UNKNOWN, %s)", token.value);
 		}
 	}
