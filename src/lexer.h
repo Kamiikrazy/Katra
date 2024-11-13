@@ -116,9 +116,6 @@ void next() {
 					token.value[len++] = *c++;
 				}
 			}
-			token.value[len] = '\0';
-			token.type = STRING;
-			printf("Token(STRING, %s)", token.value);
 			
 			if(*c == '"' || *c == '\'') {
 				token.value[len] = '\0';
