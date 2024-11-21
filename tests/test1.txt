@@ -1,5 +1,22 @@
-printf("Hello, world");
+load utils.random
 
-func myCoolFunction(a: int, b: int) {
-    return a + b;
+public function guessingGame() {
+    val int num = random::randomInt(1, 100);
+    mustpass {
+        try {
+            stdout::write("Pick a number between 1 and 100: ");
+            val guess;
+            stdin::waitfor(input) <- guess;
+            if guess > num do {
+                stdout::write("Too large!")
+            } orif guess < num do {
+                stdout::write("Too small!")
+            } otherwise do {
+                stdout::write("You're right! My number was %s" % num)
+                break;
+            }
+        } while true;
+    } ifnot catch InvalidValueException and do {
+        nothing;
+    }
 }
