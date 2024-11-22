@@ -7,13 +7,13 @@ char src[] = "function 24 + 13";
 int line;
 
 typedef enum {
-    Num, Fn, Pub, Loc, If, Else, Return, While, For, Pass, Break, Do,
+    Num, Fn, Pub, Loc, If, Else, Orif, Return, Try, While, For, Pass, Break, Do,
     String, Int, Float, Bool, Or, And, Not, Eq, Ne, Eqeq, Lt, Gt, Le, Ge,
-    Add, Sub, Mul, Div, Mod, Inc, Dec, Muleq, Diveq, Huh
+    Add, Sub, Mul, Div, Mod, Inc, Dec, Muleq, Diveq, Huh,
 } Token;
 
 const char *keywords[] = {
-    "function", "for", "do", "if", "orif", "otherwise", "try", "->",
+    "function", "for", "do", "if", "orif", "otherwise", "try", "while", "->",
     "Int", "String", "Float", "Bool", "Null", "Any"
 };
 
@@ -23,6 +23,43 @@ const char *operators[] = {
 };
 
 #define NUM_KEYWORDS (sizeof(keywords) / sizeof(keywords[0]))
+#define NUM_OPERATORS (sizeof(operators) / sizeof(operators[0]))
+
+Token classifyKeyword(const char *str) {
+	if(str == "function") {
+		return Fn;
+	} else if(str == "public") {
+		return Pub;
+	} else if(str == "private") {
+		return Loc;
+	} else if(str == "if") {
+		return If;
+	} else if(str == "otherwise") {
+		return Else;
+	} else if(str == "->") {
+		return Return;
+	} else if(str == "orif") {
+		return Orif;
+	} else if(str == "try") {
+		return Try;
+	} else if(str == "while") {
+		return While;
+	} else if(str == "nothing") {
+		return Pass;
+	} else if(str == "break") {
+		return Break;
+	} else if(str == "do") {
+		return Do;
+	} else if(str == "string") {
+		return String;
+	} else if(str == "int") {
+		return Int;
+	} else if(str == "float") {
+		return Float;
+	} else if(str == "bool") {
+		return Bool;
+	}
+}
 
 typedef struct {
     Token type;
