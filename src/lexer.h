@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-char src[] = "function 24 + 13";
+char src[] = "";
 int line;
 
 typedef enum {
@@ -25,46 +25,28 @@ const char *operators[] = {
 #define NUM_KEYWORDS (sizeof(keywords) / sizeof(keywords[0]))
 #define NUM_OPERATORS (sizeof(operators) / sizeof(operators[0]))
 
-Token classifyKeyword(const char *str) {
-	if(str == "function") {
-		return Fn;
-	} else if(str == "public") {
-		return Pub;
-	} else if(str == "private") {
-		return Loc;
-	} else if(str == "if") {
-		return If;
-	} else if(str == "otherwise") {
-		return Else;
-	} else if(str == "->") {
-		return Return;
-	} else if(str == "orif") {
-		return Orif;
-	} else if(str == "try") {
-		return Try;
-	} else if(str == "while") {
-		return While;
-	} else if(str == "nothing") {
-		return Pass;
-	} else if(str == "break") {
-		return Break;
-	} else if(str == "do") {
-		return Do;
-	} else if(str == "string") {
-		return String;
-	} else if(str == "int") {
-		return Int;
-	} else if(str == "float") {
-		return Float;
-	} else if(str == "bool") {
-		return Bool;
-	}
-}
-
 typedef struct {
     Token type;
-    char value[128];
-} KToken;
+    char *value;
+} MToken;
+
+Token classifyKeyword(const char *str) {
+    if (strcmp(str, "function") == 0) return Fn;
+    if (strcmp(str, "public") == 0) return Pub;
+    if (strcmp(str, "private") == 0) return Loc;
+    if (strcmp(str, "if") == 0) return If;
+    if (strcmp(str, "otherwise") == 0) return Else;
+    if (strcmp(str, "->") == 0) return Return;
+    if (strcmp(str, "orif") == 0) return Orif;
+    if (strcmp(str, "try") == 0) return Try;
+    if (strcmp(str, "while") == 0) return While;
+    if (strcmp(str, "do") == 0) return Do;
+    if (strcmp(str, "string") == 0) return String;
+    if (strcmp(str, "int") == 0) return Int;
+    if (strcmp(str, "float") == 0) return Float;
+    if (strcmp(str, "bool") == 0) return Bool;
+    return Huh;
+}
 
 int isKeyword(const char *str) {
     for (int i = 0; i < NUM_KEYWORDS; i++) {
@@ -75,86 +57,116 @@ int isKeyword(const char *str) {
     return 0;
 }
 
-void setValue(KToken *token, const char *text) {
-    strncpy(token->value, text, sizeof(token->value) - 1);
-    token->value[sizeof(token->value) - 1] = '\0';
+void setValue(MToken *token, const char *text) {
+    token->value = malloc(strlen(text) + 1);
+    if (token->value) {
+        strcpy(token->value, text);
+    }
+}
+
+void freeToken(MToken *token) {
+    if (token->value) {
+        free(token->value);
+        token->value = NULL;
+    }
 }
 
 void next() {
     const char *c = src;
-    KToken token;
 
-    while (*c != '\0') {
-        if (isspace(*c)) {
+    while(*c != '\0') {
+        MToken token = {0, NULL};
+
+        if(isspace(*c)) {
             c++;
             continue;
-        } else if (*c == '\n') {
+        } else if(*c == '\n') {
             line++;
             c++;
             continue;
         }
 
-        if (isalpha(*c) || *c == '_') {
-            char buffer[128];
-            int len = 0;
-            while (isalpha(*c) || *c == '_') {
-                buffer[len++] = *c++;
+        if(isalpha(*c) || *c == '_') {
+            const char *start = c;
+            while(isalpha(*c) || *c == '_') {
+                c++;
             }
-            buffer[len] = '\0';
-            setValue(&token, buffer);
+            int length = c - start;
+            char *buffer = malloc(length + 1);
+            strncpy(buffer, start, length);
+            buffer[length] = '\0';
 
-            if (isKeyword(token.value)) {
-                token.type = Fn;
+            setValue(&token, buffer);
+            free(buffer);
+
+            if(isKeyword(token.value)) {
+                token.type = classifyKeyword(token.value);
                 printf("Token(KEYWORD, %s)\n", token.value);
             } else {
                 token.type = Loc;
                 printf("Token(IDENTIFIER, %s)\n", token.value);
             }
-        } else if (isdigit(*c)) {
-            char buffer[128];
-            int len = 0;
-            while (isdigit(*c)) {
-                buffer[len++] = *c++;
+            freeToken(&token);
+        } else if(isdigit(*c)) {
+            const char *start = c;
+            while(isdigit(*c)) {
+                c++;
             }
-            buffer[len] = '\0';
+            int length = c - start;
+            char *buffer = malloc(length + 1);
+            strncpy(buffer, start, length);
+            buffer[length] = '\0';
+
             setValue(&token, buffer);
+            free(buffer);
+
             token.type = Num;
             printf("Token(NUMBER, %s)\n", token.value);
-        } else if (strchr("+-/*<>!%", *c)) {
-            char buffer[128];
-            int len = 0;
-            while (strchr("+-/*<>!%", *c)) {
-                buffer[len++] = *c++;
+            freeToken(&token);
+        } else if strchr("+-/*<>!%=", *c)) {
+            const char *start = c;
+            while(strchr("+-/*<>!%=", *c)) {
+                c++;
             }
-            buffer[len] = '\0';
+            int length = c - start;
+            char *buffer = malloc(length + 1);
+            strncpy(buffer, start, length);
+            buffer[length] = '\0';
+
             setValue(&token, buffer);
+            free(buffer);
+
             token.type = Eq;
             printf("Token(OPERATOR, %s)\n", token.value);
-        } else if (*c == '"' || *c == '\'') {
+            freeToken(&token);
+        } else if(*c == '"' || *c == '\'') {
             char quote = *c++;
-            char buffer[128];
-            int len = 0;
-            while (*c != quote && *c != '\0') {
-                if (*c == '\\' && *(c + 1) == quote) {
-                    buffer[len++] = *c++;
-                }
-                buffer[len++] = *c++;
-            }
-            if (*c == quote) {
+            const char *start = c;
+            while(*c != quote && *c != '\0') {
                 c++;
-                buffer[len] = '\0';
+            }
+            if(*c == quote) {
+                int length = c - start;
+                char *buffer = malloc(length + 1);
+                strncpy(buffer, start, length);
+                buffer[length] = '\0';
+                c++;
+
                 setValue(&token, buffer);
+                free(buffer);
+
                 token.type = String;
                 printf("Token(STRING, %s)\n", token.value);
             } else {
                 printf("Unterminated string literal\n");
-                break;
             }
+            freeToken(&token);
         } else {
             char buffer[2] = {*c++, '\0'};
             setValue(&token, buffer);
             token.type = Huh;
             printf("Token(UNKNOWN, %s)\n", token.value);
+            freeToken(&token);
         }
     }
 }
