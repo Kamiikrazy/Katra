@@ -2,9 +2,9 @@
 A programming language that works like magic :sparkles:
 ___
 ### TODO
-- [ ] Write Lexer
+- [x] Write Lexer (24-11-2024)
     - [x] Convert source code into tokens (22-11-2024)
-    - [ ] Handle keywords, identifiers, etc
+    - [x] Handle keywords, identifiers, etc (24-11-2024)
 - [ ] Write Parser
     - [ ] Convert code in an AST
     - [ ] Use Bison to parse
