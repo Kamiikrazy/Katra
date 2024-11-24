@@ -145,8 +145,13 @@ void next() {
             line++;
             c++;
             continue;
+        } else if(*c == '#') {
+            while (*c != '\n' && *c != '\0') {
+                c++;
+            }
+            continue;
         }
-
+        
         if(isalpha(*c) || *c == '_') {
             const char *start = c;
             while(isalpha(*c) || *c == '_') {
