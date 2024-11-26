@@ -34,7 +34,14 @@ const char *punctuation[] = {
 typedef struct {
     Token type;
     char *value;
+    int line;
 } MToken;
+
+typedef struct {
+    MToken *tokens;
+    int count;
+    int capacity; 
+} TokenList;
 
 Token classifyKeyword(const char *str) {
     if (strcmp(str, "function") == 0) return Fn;
@@ -106,6 +113,22 @@ Token classifyPunctuation(const char *str, int length) {
     return Huh;
 }
 
+void addToTokenList(TokenList *list, MToken token, const char *value) {
+    if (list->count == list->capacity) {
+        list->capacity = list->capacity == 0 ? 10 : list->capacity * 2;
+        list->tokens = realloc(list->tokens, list->capacity * sizeof(MToken));
+    }
+
+    list->tokens[list->count++] = token;
+}
+
+void freeTokenList(TokenList *l)  {
+    for(int i=0; i<l->count; i++) {
+        free(l -> tokens[i].value);
+    }
+    free(l->tokens);
+}
+
 int isKeyword(const char *str) {
     return classifyKeyword(str) != Huh;
 }
@@ -132,63 +155,53 @@ void freeToken(MToken *token) {
     }
 }
 
-void next() {
+void lexer(TokenList *list) {
     const char *c = src;
 
-    while(*c != '\0') {
-        MToken token = {0, NULL};
+    while (*c != '\0') {
+        MToken token;
 
-        if(isspace(*c)) {
+        if (isspace(*c)) {
             c++;
             continue;
-        } else if(*c == '\n') {
+        } else if (*c == '\n') {
             line++;
             c++;
             continue;
-        } else if(*c == '#') {
+        } else if (*c == '#') {
             while (*c != '\n' && *c != '\0') {
                 c++;
             }
             continue;
         }
-        
-        if(isalpha(*c) || *c == '_') {
+
+        if (isalpha(*c) || *c == '_') {
             const char *start = c;
-            while(isalpha(*c) || *c == '_') {
+            while (isalpha(*c) || *c == '_') {
                 c++;
             }
             int length = c - start;
-            char *buffer = malloc(length + 1);
-            strncpy(buffer, start, length);
-            buffer[length] = '\0';
 
-            setValue(&token, buffer);
-            free(buffer);
+            token.value = strndup(start, length);
 
-            if(isKeyword(token.value)) {
+            if (isKeyword(token.value)) {
                 token.type = classifyKeyword(token.value);
-                printf("Token(KEYWORD, %s)\n", token.value);
             } else {
                 token.type = Loc;
-                printf("Token(IDENTIFIER, %s)\n", token.value);
             }
-            freeToken(&token);
-        } else if(isdigit(*c)) {
+
+            addToTokenList(list, token, token.value);
+        } else if (isdigit(*c)) {
             const char *start = c;
-            while(isdigit(*c)) {
+            while (isdigit(*c)) {
                 c++;
             }
             int length = c - start;
-            char *buffer = malloc(length + 1);
-            strncpy(buffer, start, length);
-            buffer[length] = '\0';
 
-            setValue(&token, buffer);
-            free(buffer);
-
+            token.value = strndup(start, length);
             token.type = Num;
-            printf("Token(NUMBER, %s)\n", token.value);
-            freeToken(&token);
+
+            addToTokenList(list, token, token.value);
         } else if (isOperator(c, 3) || isOperator(c, 2) || isOperator(c, 1)) {
             const char *start = c;
             int length = 0;
@@ -199,59 +212,41 @@ void next() {
 
             c += length;
 
-            char *buffer = malloc(length + 1);
-            strncpy(buffer, start, length);
-            buffer[length] = '\0';
+            token.value = strndup(start, length);
+            token.type = classifyOperator(token.value, length);
 
-            setValue(&token, buffer);
-            free(buffer);
-
-            token.type = classifyOperator(start, length);
-            printf("Token(OPERATOR, %s)\n", token.value);
-            freeToken(&token);
-        } else if(isPunctuation(c, 2) || isPunctuation(c, 1)) {
+            addToTokenList(list, token, token.value);
+        } else if (isPunctuation(c, 2) || isPunctuation(c, 1)) {
             const char *start = c;
             int length = isPunctuation(c, 2) ? 2 : 1;
             c += length;
 
-            char *buffer = malloc(length + 1);
-            strncpy(buffer, start, length);
-            buffer[length] = '\0';
+            token.value = strndup(start, length);
+            token.type = classifyPunctuation(token.value, length);
 
-            setValue(&token, buffer);
-            free(buffer);
-
-            token.type = classifyPunctuation(start, length);
-            printf("Token(PUNCTUATION, %s)\n", token.value);
-            freeToken(&token);
-        } else if(*c == '"' || *c == '\'') {
+            addToTokenList(list, token, token.value);
+        } else if (*c == '"' || *c == '\'') {
             char quote = *c++;
             const char *start = c;
-            while(*c != quote && *c != '\0') {
+            while (*c != quote && *c != '\0') {
                 c++;
             }
-            if(*c == quote) {
+            if (*c == quote) {
                 int length = c - start;
-                char *buffer = malloc(length + 1);
-                strncpy(buffer, start, length);
-                buffer[length] = '\0';
-                c++;
-
-                setValue(&token, buffer);
-                free(buffer);
-
+                token.value = strndup(start, length);
                 token.type = String;
-                printf("Token(STRING, %s)\n", token.value);
+                c++;
             } else {
                 printf("Unterminated string literal\n");
             }
-            freeToken(&token);
+
+            addToTokenList(list, token, token.value);
         } else {
             char buffer[2] = {*c++, '\0'};
-            setValue(&token, buffer);
+            token.value = strdup(buffer);
             token.type = Huh;
-            printf("Token(UNKNOWN, %s)\n", token.value);
-            freeToken(&token);
+
+            addToTokenList(list, token, token.value);
         }
     }
 }
