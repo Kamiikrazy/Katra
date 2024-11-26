@@ -11,7 +11,7 @@ typedef enum {
     String, Int, Float, Bool, Null, True, False, Module, Or, And, Not, Eq, Ne, Eqeq, Lt, Gt, Le, Ge,
     Add, Sub, Mul, Div, Mod, Inc, Dec, Muleq, Diveq, 
     Dot, Comma, Semcol, Col, Dbcol, Bsl, Dbbsl, Dbfsl, Hash, Opb, Clb, Opclb, Clclb,
-    Huh,
+    Huh, EOL,
 } Token;
 
 const char *keywords[] = {
@@ -249,4 +249,8 @@ void lexer(TokenList *list) {
             addToTokenList(list, token, token.value);
         }
     }
+    MToken token;
+    token.value = NULL;
+    token.type = EOL;
+    addToTokenList(list, token, token.value);
 }
